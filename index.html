@@ -22,32 +22,19 @@
       padding: 20px;
       margin: 0;
     }
-    /* Two-column flex layout */
-    #container {
-      display: flex;
-      height: calc(100vh - 60px);
-    }
-    /* Left column: scrollable charts */
-    #charts {
-      flex: 0 0 40%;
-      overflow-y: auto;
-      padding: 20px;
-      box-sizing: border-box;
-      background-color: #000;
-    }
-    /* Right column: map */
     #map {
-      flex: 1;
-      height: 100%;
+      height: 400px;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    #charts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      padding: 20px;
     }
     .chart {
       text-align: center;
-      margin-bottom: 20px;
-      border: 1px solid transparent;
-      transition: border 0.3s;
-    }
-    .chart.highlight {
-      border: 2px solid yellow;
     }
     .city-label {
       margin-top: 8px;
@@ -63,15 +50,11 @@
 </head>
 <body>
   <h1>Cambios Poblacionales de los Sub-barrios de Santurce</h1>
-  <div id="container">
-    <div id="charts"></div>
-    <div id="map"></div>
-  </div>
+  <div id="map"></div>
+  <div id="charts"></div>
 
   <script>
-    // ------------------------------
-    // Create the Leaflet map in the right column
-    // ------------------------------
+    // Create the Leaflet map and add a dark basemap
     const map = L.map('map').setView([18.47, -66.08], 13);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
@@ -79,13 +62,55 @@
       maxZoom: 19
     }).addTo(map);
 
-    // Global objects for linking polygons and charts
-    window.geoFeaturesMap = {};   // { cityName (lowercase): polygonLayer }
-    window.cityColorMap = {};     // { cityName (lowercase): "green" or "red" }
+    // Global object to store GeoJSON features by lower-case name.
+    window.geoFeaturesMap = {};
 
-    // ------------------------------
-    // Raw population data (1940-2020)
-    // ------------------------------
+    // Load GeoJSON file from same folder and add it to the map.
+    fetch('map.geojson')
+      .then(response => response.json())
+      .then(data => {
+        // (Optional) Assign a fake value to each feature if desired.
+        data.features.forEach(feature => {
+          feature.properties.fakeValue = Math.random() * 100 - 50;
+        });
+        // Default style for polygons.
+        function defaultStyle(feature) {
+          return {
+            color: "white",
+            weight: 1,
+            fillColor: "blue",
+            fillOpacity: 0.4
+          };
+        }
+        // Create the GeoJSON layer.
+        const geoLayer = L.geoJSON(data, {
+          style: defaultStyle,
+          onEachFeature: function(feature, layer) {
+            // Use the property "NAME" or "name" from the GeoJSON.
+            const name = feature.properties.NAME || feature.properties.name || "no name";
+            // Save the layer in a global mapping keyed by lower-case name.
+            window.geoFeaturesMap[name.toLowerCase()] = layer;
+            // (Optional) Bind a popup showing the name and fake value.
+            layer.bindPopup(`<strong>${name}</strong><br>Fake Value: ${feature.properties.fakeValue.toFixed(2)}`);
+          }
+        }).addTo(map);
+        // Zoom the map to the bounds of the GeoJSON layer.
+        map.fitBounds(geoLayer.getBounds());
+      })
+      .catch(error => console.error("Error loading GeoJSON:", error));
+
+    // Tooltip for chart data points
+    const tooltip = d3.select("body").append("div")
+      .attr("id", "tooltip")
+      .style("position", "absolute")
+      .style("opacity", 0)
+      .style("background", "rgba(255,255,255,0.8)")
+      .style("color", "black")
+      .style("padding", "5px")
+      .style("border-radius", "3px")
+      .style("font-size", "12px");
+
+    // Inline tidy dataset for charts (population by city & year)
     const rawData = [
       { city: "Alto del Cabro", year: 1940, population: 2733 },
       { city: "Alto del Cabro", year: 1950, population: 2633 },
@@ -95,6 +120,7 @@
       { city: "Alto del Cabro", year: 1990, population: 1129 },
       { city: "Alto del Cabro", year: 2000, population: 1164 },
       { city: "Alto del Cabro", year: 2010, population: 891 },
+
       { city: "Bayola", year: 1940, population: 1419 },
       { city: "Bayola", year: 1950, population: 1544 },
       { city: "Bayola", year: 1960, population: 444 },
@@ -103,6 +129,7 @@
       { city: "Bayola", year: 1990, population: 986 },
       { city: "Bayola", year: 2000, population: 564 },
       { city: "Bayola", year: 2010, population: 748 },
+
       { city: "Bolívar", year: 1940, population: 1747 },
       { city: "Bolívar", year: 1950, population: 2811 },
       { city: "Bolívar", year: 1960, population: 2275 },
@@ -111,6 +138,7 @@
       { city: "Bolívar", year: 1990, population: 1179 },
       { city: "Bolívar", year: 2000, population: 1223 },
       { city: "Bolívar", year: 2010, population: 921 },
+
       { city: "Buenos Aires", year: 1940, population: 4595 },
       { city: "Buenos Aires", year: 1950, population: 18541 },
       { city: "Buenos Aires", year: 1960, population: 16947 },
@@ -119,6 +147,7 @@
       { city: "Buenos Aires", year: 1990, population: 1344 },
       { city: "Buenos Aires", year: 2000, population: 1303 },
       { city: "Buenos Aires", year: 2010, population: 1445 },
+
       { city: "Campo Alegre", year: 1940, population: 3355 },
       { city: "Campo Alegre", year: 1950, population: 3001 },
       { city: "Campo Alegre", year: 1960, population: 1827 },
@@ -127,6 +156,7 @@
       { city: "Campo Alegre", year: 1990, population: 779 },
       { city: "Campo Alegre", year: 2000, population: 942 },
       { city: "Campo Alegre", year: 2010, population: 723 },
+
       { city: "Chícharo", year: 1940, population: 1750 },
       { city: "Chícharo", year: 1950, population: 2124 },
       { city: "Chícharo", year: 1960, population: 1711 },
@@ -135,6 +165,7 @@
       { city: "Chícharo", year: 1990, population: 817 },
       { city: "Chícharo", year: 2000, population: 722 },
       { city: "Chícharo", year: 2010, population: 641 },
+
       { city: "Condado", year: 1940, population: 2470 },
       { city: "Condado", year: 1950, population: 3336 },
       { city: "Condado", year: 1960, population: 3371 },
@@ -143,6 +174,7 @@
       { city: "Condado", year: 1990, population: 5582 },
       { city: "Condado", year: 2000, population: 6170 },
       { city: "Condado", year: 2010, population: 4908 },
+
       { city: "Condadito", year: 1940, population: 1270 },
       { city: "Condadito", year: 1950, population: 1142 },
       { city: "Condadito", year: 1960, population: 896 },
@@ -151,6 +183,7 @@
       { city: "Condadito", year: 1990, population: 689 },
       { city: "Condadito", year: 2000, population: 748 },
       { city: "Condadito", year: 2010, population: 629 },
+
       { city: "Figueroa", year: 1940, population: 3209 },
       { city: "Figueroa", year: 1950, population: 3158 },
       { city: "Figueroa", year: 1960, population: 2040 },
@@ -159,6 +192,7 @@
       { city: "Figueroa", year: 1990, population: 999 },
       { city: "Figueroa", year: 2000, population: 1016 },
       { city: "Figueroa", year: 2010, population: 698 },
+
       { city: "Gandul", year: 1940, population: 6134 },
       { city: "Gandul", year: 1950, population: 5237 },
       { city: "Gandul", year: 1960, population: 4024 },
@@ -167,6 +201,7 @@
       { city: "Gandul", year: 1990, population: 1945 },
       { city: "Gandul", year: 2000, population: 2035 },
       { city: "Gandul", year: 2010, population: 1507 },
+
       { city: "Herrera", year: 1940, population: 3110 },
       { city: "Herrera", year: 1950, population: 3193 },
       { city: "Herrera", year: 1960, population: 2897 },
@@ -175,6 +210,7 @@
       { city: "Herrera", year: 1990, population: 1779 },
       { city: "Herrera", year: 2000, population: 1841 },
       { city: "Herrera", year: 2010, population: 1600 },
+
       { city: "Hipódromo", year: 1940, population: 3700 },
       { city: "Hipódromo", year: 1950, population: 4002 },
       { city: "Hipódromo", year: 1960, population: 3299 },
@@ -183,6 +219,7 @@
       { city: "Hipódromo", year: 1990, population: 1938 },
       { city: "Hipódromo", year: 2000, population: 2017 },
       { city: "Hipódromo", year: 2010, population: 1523 },
+
       { city: "Hoare", year: 1940, population: 5448 },
       { city: "Hoare", year: 1950, population: 9036 },
       { city: "Hoare", year: 1960, population: 122 },
@@ -191,6 +228,7 @@
       { city: "Hoare", year: 1990, population: 0 },
       { city: "Hoare", year: 2000, population: 3 },
       { city: "Hoare", year: 2010, population: 158 },
+
       { city: "Isla Grande/Miraflores", year: 1940, population: 983 },
       { city: "Isla Grande/Miraflores", year: 1950, population: 979 },
       { city: "Isla Grande/Miraflores", year: 1960, population: 2319 },
@@ -199,6 +237,7 @@
       { city: "Isla Grande/Miraflores", year: 1990, population: 850 },
       { city: "Isla Grande/Miraflores", year: 2000, population: 753 },
       { city: "Isla Grande/Miraflores", year: 2010, population: 246 },
+
       { city: "La Zona", year: 1940, population: 4220 },
       { city: "La Zona", year: 1950, population: 7241 },
       { city: "La Zona", year: 1960, population: 3124 },
@@ -207,6 +246,7 @@
       { city: "La Zona", year: 1990, population: 1430 },
       { city: "La Zona", year: 2000, population: 1280 },
       { city: "La Zona", year: 2010, population: 1061 },
+
       { city: "Las Casas", year: 1940, population: 428 },
       { city: "Las Casas", year: 1950, population: 5995 },
       { city: "Las Casas", year: 1960, population: 12283 },
@@ -215,6 +255,7 @@
       { city: "Las Casas", year: 1990, population: 8244 },
       { city: "Las Casas", year: 2000, population: 6775 },
       { city: "Las Casas", year: 2010, population: 6399 },
+
       { city: "Las Marías", year: 1940, population: 250 },
       { city: "Las Marías", year: 1950, population: 444 },
       { city: "Las Marías", year: 1960, population: 870 },
@@ -223,6 +264,7 @@
       { city: "Las Marías", year: 1990, population: 1133 },
       { city: "Las Marías", year: 2000, population: 1172 },
       { city: "Las Marías", year: 2010, population: 895 },
+
       { city: "Las Palmas", year: 1940, population: 2691 },
       { city: "Las Palmas", year: 1950, population: 5466 },
       { city: "Las Palmas", year: 1960, population: 4711 },
@@ -231,6 +273,7 @@
       { city: "Las Palmas", year: 1990, population: 2896 },
       { city: "Las Palmas", year: 2000, population: 2772 },
       { city: "Las Palmas", year: 2010, population: 2525 },
+
       { city: "Loíza", year: 1940, population: 5652 },
       { city: "Loíza", year: 1950, population: 7505 },
       { city: "Loíza", year: 1960, population: 3609 },
@@ -239,6 +282,7 @@
       { city: "Loíza", year: 1990, population: 2285 },
       { city: "Loíza", year: 2000, population: 2139 },
       { city: "Loíza", year: 2010, population: 2073 },
+
       { city: "Machuchal", year: 1940, population: 2764 },
       { city: "Machuchal", year: 1950, population: 2989 },
       { city: "Machuchal", year: 1960, population: 2319 },
@@ -247,6 +291,7 @@
       { city: "Machuchal", year: 1990, population: 1256 },
       { city: "Machuchal", year: 2000, population: 1212 },
       { city: "Machuchal", year: 2010, population: 1262 },
+
       { city: "Marina/María Moczo", year: 1940, population: 3222 },
       { city: "Marina/María Moczo", year: 1950, population: 3422 },
       { city: "Marina/María Moczo", year: 1960, population: 4088 },
@@ -255,6 +300,7 @@
       { city: "Marina/María Moczo", year: 1990, population: 1614 },
       { city: "Marina/María Moczo", year: 2000, population: 1964 },
       { city: "Marina/María Moczo", year: 2010, population: 1627 },
+
       { city: "Marruecos", year: 1940, population: 6673 },
       { city: "Marruecos", year: 1950, population: 12167 },
       { city: "Marruecos", year: 1960, population: 11064 },
@@ -263,6 +309,7 @@
       { city: "Marruecos", year: 1990, population: 0 },
       { city: "Marruecos", year: 2000, population: 0 },
       { city: "Marruecos", year: 2010, population: 9 },
+
       { city: "Martín Peña", year: 1940, population: 968 },
       { city: "Martín Peña", year: 1950, population: 1215 },
       { city: "Martín Peña", year: 1960, population: 904 },
@@ -271,6 +318,7 @@
       { city: "Martín Peña", year: 1990, population: 502 },
       { city: "Martín Peña", year: 2000, population: 415 },
       { city: "Martín Peña", year: 2010, population: 204 },
+
       { city: "Melilla", year: 1940, population: 3516 },
       { city: "Melilla", year: 1950, population: 3204 },
       { city: "Melilla", year: 1960, population: 2635 },
@@ -279,6 +327,7 @@
       { city: "Melilla", year: 1990, population: 1306 },
       { city: "Melilla", year: 2000, population: 926 },
       { city: "Melilla", year: 2010, population: 785 },
+
       { city: "Merhoff", year: 1940, population: 4414 },
       { city: "Merhoff", year: 1950, population: 9433 },
       { city: "Merhoff", year: 1960, population: 9538 },
@@ -287,6 +336,7 @@
       { city: "Merhoff", year: 1990, population: 3302 },
       { city: "Merhoff", year: 2000, population: 2992 },
       { city: "Merhoff", year: 2010, population: 3023 },
+
       { city: "Minillas", year: 1940, population: 2927 },
       { city: "Minillas", year: 1950, population: 5635 },
       { city: "Minillas", year: 1960, population: 2960 },
@@ -295,6 +345,7 @@
       { city: "Minillas", year: 1990, population: 1252 },
       { city: "Minillas", year: 2000, population: 1484 },
       { city: "Minillas", year: 2010, population: 1039 },
+
       { city: "Miramar", year: 1940, population: 4493 },
       { city: "Miramar", year: 1950, population: 4686 },
       { city: "Miramar", year: 1960, population: 4796 },
@@ -303,6 +354,7 @@
       { city: "Miramar", year: 1990, population: 5266 },
       { city: "Miramar", year: 2000, population: 5440 },
       { city: "Miramar", year: 2010, population: 4412 },
+
       { city: "Monteflores", year: 1940, population: 1229 },
       { city: "Monteflores", year: 1950, population: 1762 },
       { city: "Monteflores", year: 1960, population: 1728 },
@@ -311,6 +363,7 @@
       { city: "Monteflores", year: 1990, population: 1534 },
       { city: "Monteflores", year: 2000, population: 1657 },
       { city: "Monteflores", year: 2010, population: 1737 },
+
       { city: "Obrero", year: 1940, population: 15974 },
       { city: "Obrero", year: 1950, population: 25219 },
       { city: "Obrero", year: 1960, population: 24475 },
@@ -319,6 +372,7 @@
       { city: "Obrero", year: 1990, population: 11031 },
       { city: "Obrero", year: 2000, population: 11467 },
       { city: "Obrero", year: 2010, population: 10316 },
+
       { city: "Ocean Park", year: 1940, population: 583 },
       { city: "Ocean Park", year: 1950, population: 2209 },
       { city: "Ocean Park", year: 1960, population: 2780 },
@@ -327,6 +381,7 @@
       { city: "Ocean Park", year: 1990, population: 2034 },
       { city: "Ocean Park", year: 2000, population: 1976 },
       { city: "Ocean Park", year: 2010, population: 1667 },
+
       { city: "Park/Parque", year: 1940, population: 2070 },
       { city: "Park/Parque", year: 1950, population: 2588 },
       { city: "Park/Parque", year: 1960, population: 2602 },
@@ -335,6 +390,7 @@
       { city: "Park/Parque", year: 1990, population: 3438 },
       { city: "Park/Parque", year: 2000, population: 3251 },
       { city: "Park/Parque", year: 2010, population: 2871 },
+
       { city: "Pozo del Hato", year: 1940, population: 1615 },
       { city: "Pozo del Hato", year: 1950, population: 1692 },
       { city: "Pozo del Hato", year: 1960, population: 376 },
@@ -343,6 +399,7 @@
       { city: "Pozo del Hato", year: 1990, population: 143 },
       { city: "Pozo del Hato", year: 2000, population: 137 },
       { city: "Pozo del Hato", year: 2010, population: 218 },
+
       { city: "Pulguero", year: 1940, population: 3238 },
       { city: "Pulguero", year: 1950, population: 3441 },
       { city: "Pulguero", year: 1960, population: 2720 },
@@ -351,6 +408,7 @@
       { city: "Pulguero", year: 1990, population: 1333 },
       { city: "Pulguero", year: 2000, population: 1196 },
       { city: "Pulguero", year: 2010, population: 1035 },
+
       { city: "Sagrado Corazón", year: 1940, population: 1638 },
       { city: "Sagrado Corazón", year: 1950, population: 2478 },
       { city: "Sagrado Corazón", year: 1960, population: 2644 },
@@ -359,6 +417,7 @@
       { city: "Sagrado Corazón", year: 1990, population: 1790 },
       { city: "Sagrado Corazón", year: 2000, population: 1646 },
       { city: "Sagrado Corazón", year: 2010, population: 1897 },
+
       { city: "San Juan Moderno", year: 1940, population: 1255 },
       { city: "San Juan Moderno", year: 1950, population: 1454 },
       { city: "San Juan Moderno", year: 1960, population: 1060 },
@@ -367,6 +426,7 @@
       { city: "San Juan Moderno", year: 1990, population: 997 },
       { city: "San Juan Moderno", year: 2000, population: 1083 },
       { city: "San Juan Moderno", year: 2010, population: 925 },
+
       { city: "San Mateo", year: 1940, population: 4175 },
       { city: "San Mateo", year: 1950, population: 2074 },
       { city: "San Mateo", year: 1960, population: 1912 },
@@ -375,6 +435,7 @@
       { city: "San Mateo", year: 1990, population: 1698 },
       { city: "San Mateo", year: 2000, population: 1989 },
       { city: "San Mateo", year: 2010, population: 1549 },
+
       { city: "Seboruco", year: 1940, population: 2834 },
       { city: "Seboruco", year: 1950, population: 4813 },
       { city: "Seboruco", year: 1960, population: 3949 },
@@ -383,6 +444,7 @@
       { city: "Seboruco", year: 1990, population: 2009 },
       { city: "Seboruco", year: 2000, population: 2198 },
       { city: "Seboruco", year: 2010, population: 1878 },
+
       { city: "Shanghai", year: 1940, population: 3650 },
       { city: "Shanghai", year: 1950, population: 7153 },
       { city: "Shanghai", year: 1960, population: 18760 },
@@ -391,6 +453,7 @@
       { city: "Shanghai", year: 1990, population: 10788 },
       { city: "Shanghai", year: 2000, population: 11331 },
       { city: "Shanghai", year: 2010, population: 9438 },
+
       { city: "Sunoco/VillaPalmeras", year: 1940, population: 2939 },
       { city: "Sunoco/VillaPalmeras", year: 1950, population: 3748 },
       { city: "Sunoco/VillaPalmeras", year: 1960, population: 4950 },
@@ -399,6 +462,7 @@
       { city: "Sunoco/VillaPalmeras", year: 1990, population: 2672 },
       { city: "Sunoco/VillaPalmeras", year: 2000, population: 2648 },
       { city: "Sunoco/VillaPalmeras", year: 2010, population: 2351 },
+
       { city: "Tras Talleres", year: 1940, population: 7750 },
       { city: "Tras Talleres", year: 1950, population: 6237 },
       { city: "Tras Talleres", year: 1960, population: 3698 },
@@ -406,89 +470,35 @@
       { city: "Tras Talleres", year: 1980, population: 3317 },
       { city: "Tras Talleres", year: 1990, population: 3197 },
       { city: "Tras Talleres", year: 2000, population: 2453 },
-      { city: "Tras Talleres", year: 2010, population: 1789 },
-      { city: "Alto del Cabro", year: 2020, population: 903 },
-      { city: "Bayola", year: 2020, population: 672 },
-      { city: "Bolívar", year: 2020, population: 780 },
-      { city: "Buenos Aires", year: 2020, population: 1120 },
-      { city: "Campo Alegre", year: 2020, population: 691 },
-      { city: "Chícharo", year: 2020, population: 526 },
-      { city: "Condado", year: 2020, population: 5813 },
-      { city: "Condadito", year: 2020, population: 623 },
-      { city: "Figueroa", year: 2020, population: 620 },
-      { city: "Gandul", year: 2020, population: 735 },
-      { city: "Herrera", year: 2020, population: 1330 },
-      { city: "Hipódromo", year: 2020, population: 1316 },
-      { city: "Hoare", year: 2020, population: 19 },
-      { city: "Isla Grande/Miraflores", year: 2020, population: 332 },
-      { city: "La Zona", year: 2020, population: 716 },
-      { city: "Las Casas", year: 2020, population: 4590 },
-      { city: "Las Marías", year: 2020, population: 925 },
-      { city: "Las Palmas", year: 2020, population: 2428 },
-      { city: "Loíza", year: 2020, population: 1405 },
-      { city: "Machuchal", year: 2020, population: 838 },
-      { city: "Marina/María Moczo", year: 2020, population: 1284 },
-      { city: "Marruecos", year: 2020, population: 23 },
-      { city: "Martín Peña", year: 2020, population: 347 },
-      { city: "Melilla", year: 2020, population: 494 },
-      { city: "Merhoff", year: 2020, population: 2775 },
-      { city: "Minillas", year: 2020, population: 2438 },
-      { city: "Miramar", year: 2020, population: 4244 },
-      { city: "Monteflores", year: 2020, population: 1742 },
-      { city: "Obrero", year: 2020, population: 7319 },
-      { city: "Ocean Park", year: 2020, population: 1290 },
-      { city: "Park/Parque", year: 2020, population: 3063 },
-      { city: "Pozo del Hato", year: 2020, population: 282 },
-      { city: "Pulguero", year: 2020, population: 847 },
-      { city: "Sagrado Corazón", year: 2020, population: 2171 },
-      { city: "San Juan Moderno", year: 2020, population: 759 },
-      { city: "San Mateo", year: 2020, population: 1409 },
-      { city: "Seboruco", year: 2020, population: 1317 },
-      { city: "Shanghai", year: 2020, population: 6744 },
-      { city: "Sunoco/VillaPalmeras", year: 2020, population: 1736 },
-      { city: "Tras Talleres", year: 2020, population: 1615 }
+      { city: "Tras Talleres", year: 2010, population: 1789 }
         ];
 
         // Group data by city name
         const dataByCity = d3.group(rawData, d => d.city);
-        let cities = Array.from(dataByCity, ([cityName, values]) => {
+        const cities = Array.from(dataByCity, ([cityName, values]) => {
             values.sort((a, b) => d3.ascending(a.year, b.year));
-            // For linking charts and polygons, we'll use the lower-case city name as id.
-            return { name: cityName, data: values };
-        });
-
-        // Order the charts: green (positive growth) first.
-        cities.sort((a, b) => {
-            const aInc = a.data[a.data.length - 1].population > a.data[0].population;
-            const bInc = b.data[b.data.length - 1].population > b.data[0].population;
-            if(aInc === bInc) return 0;
-            return aInc ? -1 : 1;
+            // Generate random coordinates for map markers (not used now since we use geojson polygons)
+            const lat = 18.45 + Math.random() * 0.05;
+            const lng = -66.10 + Math.random() * 0.05;
+            return { name: cityName, data: values, lat, lng };
         });
 
         // Compute global y domain across all cities
         const globalMin = d3.min(cities, city => d3.min(city.data, d => d.population));
         const globalMax = d3.max(cities, city => d3.max(city.data, d => d.population));
 
-        // Build a mapping of city name to chart color (green if growth positive, red if negative)
-        window.cityColorMap = {};
-        cities.forEach(city => {
-            const isIncreasing = city.data[city.data.length - 1].population > city.data[0].population;
-            window.cityColorMap[city.name.toLowerCase()] = isIncreasing ? "green" : "red";
-        });
-
         function drawCharts(cities, globalMin, globalMax) {
             const chartsContainer = d3.select("#charts");
             cities.forEach(city => {
-                const cityNameLower = city.name.toLowerCase();
-                // Determine chart color using our cityColorMap
-                const color = window.cityColorMap[cityNameLower];
+                // Determine trend: if last population > first population, trend is increasing
+                const isIncreasing = city.data[city.data.length - 1].population > city.data[0].population;
+                const color = isIncreasing ? "green" : "red";
 
-                // Create container for each chart and give it an id for linking.
+                // Create container for each chart
                 const container = chartsContainer.append("div")
-                    .attr("class", "chart")
-                    .attr("id", "chart-" + cityNameLower);
+                    .attr("class", "chart");
 
-                // Append SVG element for the chart
+                // Append SVG element
                 const svg = container.append("svg")
                     .attr("width", 250)
                     .attr("height", 150);
@@ -534,18 +544,10 @@
                     .attr("r", 2)
                     .attr("fill", color)
                     .on("mouseover", (event, d) => {
-                        // Compute min, max and latest records for this city:
-                        const maxRecord = city.data.reduce((a, b) => a.population > b.population ? a : b);
-                        const minRecord = city.data.reduce((a, b) => a.population < b.population ? a : b);
-                        const latestRecord = city.data.find(d => d.year === 2020) || city.data[city.data.length - 1];
                         tooltip.transition().duration(200).style("opacity", 1);
-                        tooltip.html(
-                          "Máximo: " + maxRecord.population + " en " + maxRecord.year + "<br>" +
-                          "Mínimo: " + minRecord.population + " en " + minRecord.year + "<br>" +
-                          "Último (2020): " + latestRecord.population
-                        )
-                        .style("left", (event.pageX + 5) + "px")
-                        .style("top", (event.pageY - 28) + "px");
+                        tooltip.html("Población: " + d.population)
+                            .style("left", (event.pageX + 5) + "px")
+                            .style("top", (event.pageY - 28) + "px");
                     })
                     .on("mousemove", (event, d) => {
                         tooltip.style("left", (event.pageX + 5) + "px")
@@ -563,7 +565,8 @@
                     .attr("transform", `translate(0, ${innerHeight})`)
                     .call(xAxis)
                     .call(g => g.selectAll("text").attr("fill", "white"))
-                    .call(g => g.selectAll("line").attr("stroke", "white"));
+                    .call(g => g.selectAll("line").attr("stroke", "white"))
+                    .call(g => g.select("path").attr("stroke", "white"));
 
                 // Add minimal y-axis
                 const yAxis = d3.axisLeft(y)
@@ -571,114 +574,69 @@
                 g.append("g")
                     .call(yAxis)
                     .call(g => g.selectAll("text").attr("fill", "white").style("font-size", "12px"))
-                    .call(g => g.selectAll("line").attr("stroke", "white"));
+                    .call(g => g.selectAll("line").attr("stroke", "white"))
+                    .call(g => g.select("path").attr("stroke", "white"));
 
                 // Append city name below the chart
                 container.append("div")
                     .attr("class", "city-label")
                     .text(city.name);
+
+                // When hovering over a chart, highlight matching polygon(s) in the map
+                container.on("mouseover", () => {
+                    const cityNameLower = city.name.toLowerCase();
+                    for (let key in window.geoFeaturesMap) {
+                        if (key.includes(cityNameLower) || cityNameLower.includes(key)) {
+                            window.geoFeaturesMap[key].setStyle({ fillColor: "yellow" });
+                        }
+                    }
+                }).on("mouseout", () => {
+                    const cityNameLower = city.name.toLowerCase();
+                    for (let key in window.geoFeaturesMap) {
+                        if (key.includes(cityNameLower) || cityNameLower.includes(key)) {
+                            window.geoFeaturesMap[key].setStyle({ fillColor: "blue" });
+                        }
+                    }
+                });
             });
         }
 
-        // Order charts: green (increasing) first
-        // (Cities array is already sorted earlier)
+        // Instead of drawing markers, we load the geojson polygons.
+        function drawMap() {
+            // The map is already created above.
+            // (The geojson is loaded in the fetch block below.)
+        }
+
         // Draw charts from rawData
         drawCharts(cities, globalMin, globalMax);
 
-        // Use an IntersectionObserver to trigger polygon popup when a chart scrolls into view.
-        const chartsContainerEl = document.querySelector("#charts");
-        const options = {
-          root: chartsContainerEl,
-          threshold: 0.5
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting) {
-              const id = entry.target.id; // "chart-<city>"
-              const cityName = id.replace("chart-", "");
-              const polygonLayer = window.geoFeaturesMap[cityName];
-              if (polygonLayer) {
-                polygonLayer.openPopup();
-              }
-            } else {
-              const id = entry.target.id;
-              const cityName = id.replace("chart-", "");
-              const polygonLayer = window.geoFeaturesMap[cityName];
-              if (polygonLayer) {
-                polygonLayer.closePopup();
-              }
-            }
-          });
-        }, options);
-
-        // ------------------------------
-        // Load the GeoJSON file for the polygons and link with charts
-        // ------------------------------
+        // Load the GeoJSON file for the polygons and store features in a global map.
         fetch('map.geojson')
             .then(response => response.json())
             .then(data => {
-                // (Optional) Assign fake values to each feature (unused now for popup content)
+                // (Optional) Assign fake values to each feature
                 data.features.forEach(function(feature) {
                     feature.properties.fakeValue = Math.random() * 100 - 50;
                 });
-                // Define a style function for polygons using a gradient based on 2020 value vs. min/max
+                // Default style for polygons
                 function defaultStyle(feature) {
-                    const name = (feature.properties.NAME || feature.properties.name || "").toLowerCase();
-                    // Find the corresponding city data
-                    const cityData = cities.find(c => c.name.toLowerCase() === name);
-                    let normalizedValue = 0.5;
-                    if (cityData) {
-                        const maxRecord = cityData.data.reduce((a, b) => a.population > b.population ? a : b);
-                        const minRecord = cityData.data.reduce((a, b) => a.population < b.population ? a : b);
-                        const latestRecord = cityData.data.find(d => d.year === 2020) || cityData.data[cityData.data.length - 1];
-                        if ((maxRecord.population - minRecord.population) !== 0) {
-                            normalizedValue = (latestRecord.population - minRecord.population) / (maxRecord.population - minRecord.population);
-                        }
-                    }
-                    // Use d3.interpolateRdYlGn: 0 gives red, 1 gives green.
-                    const fillColor = d3.interpolateRdYlGn(normalizedValue);
                     return {
                         color: "white",
                         weight: 1,
-                        fillColor: fillColor,
-                        fillOpacity: 0.7
+                        fillColor: "blue",
+                        fillOpacity: 0.4
                     };
                 }
-
                 const geoLayer = L.geoJSON(data, {
                     style: defaultStyle,
                     onEachFeature: function(feature, layer) {
+                        // Use property "NAME" or "name" for matching
                         const name = feature.properties.NAME || feature.properties.name || "no name";
-                        const lowerName = name.toLowerCase();
-                        // Store the layer for linking
-                        window.geoFeaturesMap[lowerName] = layer;
-                        // Find corresponding city data
-                        const cityData = cities.find(c => c.name.toLowerCase() === lowerName);
-                        let maxRecord, minRecord, latestRecord;
-                        if (cityData) {
-                          maxRecord = cityData.data.reduce((a, b) => a.population > b.population ? a : b);
-                          minRecord = cityData.data.reduce((a, b) => a.population < b.population ? a : b);
-                          latestRecord = cityData.data.find(d => d.year === 2020) || cityData.data[cityData.data.length - 1];
-                        }
-                        layer.bindPopup(`<strong>${name}</strong><br>
-                            Máximo: ${maxRecord.population} en ${maxRecord.year}<br>
-                            Mínimo: ${minRecord.population} en ${minRecord.year}<br>
-                            Último (2020): ${latestRecord.population}`);
-                        // On click, highlight the corresponding chart
-                        layer.on("click", function() {
-                            d3.selectAll(".chart").classed("highlight", false);
-                            const chartId = "chart-" + lowerName;
-                            d3.select("#" + chartId).classed("highlight", true);
-                        });
+                        window.geoFeaturesMap[name.toLowerCase()] = layer;
+                        layer.bindPopup(`<strong>${name}</strong><br>Fake Value: ${feature.properties.fakeValue.toFixed(2)}`);
                     }
                 }).addTo(map);
                 map.fitBounds(geoLayer.getBounds());
-
-                // Observe each chart for scrolling effect
-                d3.selectAll(".chart").each(function() {
-                    observer.observe(this);
-                });
             })
             .catch(error => console.error("Error loading GeoJSON:", error));
     </script>
