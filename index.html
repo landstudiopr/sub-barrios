@@ -74,9 +74,11 @@
 <body>
   <h1>Cambios Poblacionales de los Sub-barrios de Santurce</h1>
   <div id="container">
-    <div id="charts"></div>
+    <div id="charts" style="position: relative;">
+      <div id="center-arrow" style="position: absolute; top: 50%; left: 0; width: 100%; text-align: center; pointer-events: none; color: yellow; font-size: 2rem;">&#8595;</div>
+    </div>
     <div id="map"></div>
-    <div id="map-tooltip" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); border: 1px solid yellow; background: transparent; color: yellow; padding: 5px; font-size: 0.8rem; display: none; z-index: 1000;"></div>
+    <div id="map-tooltip" style="position: absolute; top: 60%; right: 20px; transform: translateY(-50%); border: 1px solid yellow; background: transparent; color: yellow; padding: 5px; font-size: 0.8rem; display: none; z-index: 1000;"></div>
   </div>
 
   <script>
@@ -576,38 +578,50 @@
         drawCharts(cities, globalMin, globalMax);
 
         const observer = new IntersectionObserver((entries) => {
+          // Reset styles for all polygons
+          Object.values(window.geoFeaturesMap).forEach(layer => {
+            window.geoLayer.resetStyle(layer);
+          });
+          
+          // Determine the entry with the highest intersection ratio
+          let activeEntry = null;
           entries.forEach(entry => {
-            const id = entry.target.id; // "chart-<city>"
+            if (entry.isIntersecting) {
+              if (!activeEntry || entry.intersectionRatio > activeEntry.intersectionRatio) {
+                activeEntry = entry;
+              }
+            }
+          });
+          
+          if (activeEntry) {
+            const id = activeEntry.target.id; // "chart-<city>"
             const cityName = id.replace("chart-", "");
             const polygonLayer = window.geoFeaturesMap[cityName];
-            // Find corresponding city data
             const cityData = cities.find(c => c.name.toLowerCase() === cityName);
             if (polygonLayer && cityData) {
               const maxRecord = cityData.data.reduce((a, b) => a.population > b.population ? a : b);
               const minRecord = cityData.data.reduce((a, b) => a.population < b.population ? a : b);
               const latestRecord = cityData.data.find(d => d.year === 2020) || cityData.data[cityData.data.length - 1];
               const percentage = ((latestRecord.population / maxRecord.population) * 100).toFixed(1);
-              if (entry.isIntersecting) {
-                // Highlight polygon with yellow outline
-                polygonLayer.setStyle({color: "yellow", weight: 3});
-                // Build and display tooltip content in the top center of the map
-                const tooltipContent = `<strong>${cityData.name}</strong><br>
-                Min: (${minRecord.population} en ${minRecord.year})<br>
-                Max: (${maxRecord.population} en ${maxRecord.year})<br>
-                Último: (${latestRecord.population})<br>
-                Porciento Max/Último: (${percentage}%)`;
-                d3.select("#map-tooltip")
-                  .html(tooltipContent)
-                  .style("display", "block");
-              } else {
-                window.geoLayer.resetStyle(polygonLayer);
-                d3.select("#map-tooltip").style("display", "none");
-              }
+              // Highlight the active polygon with a yellow outline
+              polygonLayer.setStyle({color: "yellow", weight: 3});
+              // Build tooltip content
+              const tooltipContent = `<strong>${cityData.name}</strong><br>
+      Min: (${minRecord.population} en ${minRecord.year})<br>
+      Max: (${maxRecord.population} en ${maxRecord.year})<br>
+      Último: (${latestRecord.population})<br>
+      Porciento Max/Último: (${percentage}%)`;
+              d3.select("#map-tooltip")
+                .html(tooltipContent)
+                .style("display", "block");
             }
-          });
+          } else {
+            d3.select("#map-tooltip").style("display", "none");
+          }
         }, {
           root: document.querySelector("#charts"),
-          threshold: 0.5
+          rootMargin: "-50% 0px -50% 0px",
+          threshold: 0
         });
 
         // ------------------------------
@@ -680,4 +694,5 @@
     </script>
 </body>
 </html>
+
 
