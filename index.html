@@ -1,90 +1,101 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-52RSXENZX2"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-    
-      gtag('config', 'G-52RSXENZX2');
-    </script>
-    <meta charset="UTF-8">
-    <title>Cambios Poblacionales de los Sub-barrios de Santurce</title>
-    <!-- Import Courier Prime font -->
-    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap" rel="stylesheet">
-    <!-- Import D3.js -->
-    <script src="https://d3js.org/d3.v6.min.js"></script>
-    <!-- Import Leaflet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <style>
-      body {
-        margin: 0;
-        background-color: #000;
-        color: #fff;
-        font-family: 'Courier Prime', monospace;
-      }
-      h1 {
-        text-align: center;
-        padding: 20px;
-        margin: 0;
-      }
-      /* Two-column flex layout */
-      #container {
-        display: flex;
-        height: calc(100vh - 60px);
-      }
-      /* Left column: scrollable charts */
-      #charts {
-        flex: 0 0 40%;
-        overflow-y: auto;
-        padding: 20px;
-        box-sizing: border-box;
-        background-color: #000;
-      }
-      /* Right column: map */
-      #map {
-        flex: 1;
-        height: 100%;
-      }
-      .chart {
-        text-align: center;
-        margin-bottom: 20px;
-        border: 1px solid transparent;
-        transition: border 0.3s;
-      }
-      .chart.highlight {
-        border: 2px solid yellow;
-      }
-      .city-label {
-        margin-top: 2px;
-        font-size: .5rem;
-        color: white;
-      }
-      svg {
-        display: block;
-        margin: auto;
-        background-color: transparent;
-      }
-      /* Updated label font size: 50% smaller (7px) */
-      .leaflet-tooltip.city-tooltip {
-          background: transparent;
-          border: none;
-          box-shadow: none;
-          color: white;
-          font-size: 7px;
-      }
-    </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-52RSXENZX2"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-52RSXENZX2');
+  </script>
+  <meta charset="UTF-8">
+  <title>Cambios Poblacionales de los Sub-barrios de Santurce</title>
+  <!-- Import Courier Prime font -->
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap" rel="stylesheet">
+  <!-- Import D3.js -->
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  <!-- Import Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background-color: #000;
+      color: #fff;
+      font-family: 'Courier Prime', monospace;
+    }
+
+    h1 {
+      text-align: center;
+      padding: 20px;
+      margin: 0;
+    }
+
+    /* Two-column flex layout */
+    #container {
+      display: flex;
+      height: calc(100vh - 60px);
+    }
+
+    /* Left column: scrollable charts */
+    #charts {
+      flex: 0 0 40%;
+      overflow-y: auto;
+      padding: 20px;
+      box-sizing: border-box;
+      background-color: #000;
+    }
+
+    /* Right column: map */
+    #map {
+      flex: 1;
+      height: 100%;
+    }
+
+    .chart {
+      text-align: center;
+      margin-bottom: 20px;
+      border: 1px solid transparent;
+      transition: border 0.3s;
+    }
+
+    .chart.highlight {
+      border: 2px solid yellow;
+    }
+
+    .city-label {
+      margin-top: 2px;
+      font-size: .5rem;
+      color: white;
+    }
+
+    svg {
+      display: block;
+      margin: auto;
+      background-color: transparent;
+    }
+
+    /* Updated label font size: 50% smaller (7px) */
+    .leaflet-tooltip.city-tooltip {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      color: white;
+      font-size: 10px;
+    }
+  </style>
 </head>
+
 <body>
   <h1>Cambios Poblacionales de los Sub-barrios de Santurce</h1>
   <div id="container">
     <div id="charts"></div>
     <div id="map"></div>
   </div>
-  
+
   <script>
     // ------------------------------
     // Create the Leaflet map in the right column
@@ -95,11 +106,11 @@
       subdomains: 'abcd',
       maxZoom: 19
     }).addTo(map);
-    
+
     // Global objects for linking polygons and charts
     window.geoFeaturesMap = {};   // { cityName (lowercase): polygonLayer }
     window.cityColorMap = {};     // { cityName (lowercase): "green" or "red" }
-    
+
     // ------------------------------
     // Raw population data (1940-2020)
     // ------------------------------
@@ -465,169 +476,170 @@
       { city: "Sunoco/VillaPalmeras", year: 2020, population: 1736 },
       { city: "Tras Talleres", year: 2020, population: 1615 }
     ];
-    
+
     // Group data by city name
     const dataByCity = d3.group(rawData, d => d.city);
     let cities = Array.from(dataByCity, ([cityName, values]) => {
-        values.sort((a, b) => d3.ascending(a.year, b.year));
-        return { name: cityName, data: values };
+      values.sort((a, b) => d3.ascending(a.year, b.year));
+      return { name: cityName, data: values };
     });
-    
+
     // Order the charts: green (positive growth) first.
     cities.sort((a, b) => {
-        const aInc = a.data[a.data.length - 1].population > a.data[0].population;
-        const bInc = b.data[b.data.length - 1].population > b.data[0].population;
-        if(aInc === bInc) return 0;
-        return aInc ? -1 : 1;
+      const aInc = a.data[a.data.length - 1].population > a.data[0].population;
+      const bInc = b.data[b.data.length - 1].population > b.data[0].population;
+      if (aInc === bInc) return 0;
+      return aInc ? -1 : 1;
     });
-    
+
     // Compute global y domain across all cities
     const globalMin = d3.min(cities, city => d3.min(city.data, d => d.population));
     const globalMax = d3.max(cities, city => d3.max(city.data, d => d.population));
-    
+
     // Build a mapping of city name to chart color (green if growth positive, red if negative)
     window.cityColorMap = {};
     cities.forEach(city => {
-        const isIncreasing = city.data[city.data.length - 1].population > city.data[0].population;
-        window.cityColorMap[city.name.toLowerCase()] = isIncreasing ? "green" : "red";
+      const isIncreasing = city.data[city.data.length - 1].population > city.data[0].population;
+      window.cityColorMap[city.name.toLowerCase()] = isIncreasing ? "green" : "red";
     });
-    
+
     function drawCharts(cities, globalMin, globalMax) {
-        const chartsContainer = d3.select("#charts");
-        cities.forEach(city => {
-            const cityNameLower = city.name.toLowerCase();
-            const color = window.cityColorMap[cityNameLower];
-    
-            const container = chartsContainer.append("div")
-                .attr("class", "chart")
-                .attr("id", "chart-" + cityNameLower);
-    
-            const svg = container.append("svg")
-                .attr("width", 250)
-                .attr("height", 150);
-    
-            const margin = { top: 10, right: 10, bottom: 20, left: 50 };
-            const innerWidth = 250 - margin.left - margin.right;
-            const innerHeight = 150 - margin.top - margin.bottom;
-            const g = svg.append("g")
-                .attr("transform", `translate(${margin.left},${margin.top})`);
-    
-            const x = d3.scaleLinear()
-                .domain(d3.extent(city.data, d => d.year))
-                .range([0, innerWidth]);
-    
-            const y = d3.scaleLinear()
-                .domain([globalMin, globalMax])
-                .range([innerHeight, 0]);
-    
-            const line = d3.line()
-                .curve(d3.curveCatmullRom)
-                .x(d => x(d.year))
-                .y(d => y(d.population));
-    
-            g.append("path")
-                .datum(city.data)
-                .attr("fill", "none")
-                .attr("stroke", color)
-                .attr("stroke-width", 2)
-                .attr("d", line);
-    
-            // Add circles without tooltip event handlers
-            g.selectAll("circle")
-                .data(city.data)
-                .enter()
-                .append("circle")
-                .attr("cx", d => x(d.year))
-                .attr("cy", d => y(d.population))
-                .attr("r", 2)
-                .attr("fill", color);
-    
-            const xAxis = d3.axisBottom(x)
-                .ticks(4)
-                .tickFormat(d3.format("d"));
-            g.append("g")
-                .attr("transform", `translate(0, ${innerHeight})`)
-                .call(xAxis)
-                .call(g => g.selectAll("text").attr("fill", "white"))
-                .call(g => g.selectAll("line").attr("stroke", "white"));
-    
-            const yAxis = d3.axisLeft(y)
-                .ticks(3);
-            g.append("g")
-                .call(yAxis)
-                .call(g => g.selectAll("text").attr("fill", "white").style("font-size", "12px"))
-                .call(g => g.selectAll("line").attr("stroke", "white"));
-    
-            container.append("div")
-                .attr("class", "city-label")
-                .text(city.name);
-        });
+      const chartsContainer = d3.select("#charts");
+      cities.forEach(city => {
+        const cityNameLower = city.name.toLowerCase();
+        const color = window.cityColorMap[cityNameLower];
+
+        const container = chartsContainer.append("div")
+          .attr("class", "chart")
+          .attr("id", "chart-" + cityNameLower);
+
+        const svg = container.append("svg")
+          .attr("width", 250)
+          .attr("height", 150);
+
+        const margin = { top: 10, right: 10, bottom: 20, left: 50 };
+        const innerWidth = 250 - margin.left - margin.right;
+        const innerHeight = 150 - margin.top - margin.bottom;
+        const g = svg.append("g")
+          .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const x = d3.scaleLinear()
+          .domain(d3.extent(city.data, d => d.year))
+          .range([0, innerWidth]);
+
+        const y = d3.scaleLinear()
+          .domain([globalMin, globalMax])
+          .range([innerHeight, 0]);
+
+        const line = d3.line()
+          .curve(d3.curveCatmullRom)
+          .x(d => x(d.year))
+          .y(d => y(d.population));
+
+        g.append("path")
+          .datum(city.data)
+          .attr("fill", "none")
+          .attr("stroke", color)
+          .attr("stroke-width", 2)
+          .attr("d", line);
+
+        // Add circles without tooltip event handlers
+        g.selectAll("circle")
+          .data(city.data)
+          .enter()
+          .append("circle")
+          .attr("cx", d => x(d.year))
+          .attr("cy", d => y(d.population))
+          .attr("r", 2)
+          .attr("fill", color);
+
+        const xAxis = d3.axisBottom(x)
+          .ticks(4)
+          .tickFormat(d3.format("d"));
+        g.append("g")
+          .attr("transform", `translate(0, ${innerHeight})`)
+          .call(xAxis)
+          .call(g => g.selectAll("text").attr("fill", "white"))
+          .call(g => g.selectAll("line").attr("stroke", "white"));
+
+        const yAxis = d3.axisLeft(y)
+          .ticks(3);
+        g.append("g")
+          .call(yAxis)
+          .call(g => g.selectAll("text").attr("fill", "white").style("font-size", "12px"))
+          .call(g => g.selectAll("line").attr("stroke", "white"));
+
+        container.append("div")
+          .attr("class", "city-label")
+          .text(city.name);
+      });
     }
-    
+
     drawCharts(cities, globalMin, globalMax);
-    
+
     // ------------------------------
     // Load the GeoJSON file for the polygons and link with charts
     // ------------------------------
     fetch('map.geojson')
-        .then(response => response.json())
-        .then(data => {
-            data.features.forEach(function(feature) {
-                feature.properties.fakeValue = Math.random() * 100 - 50;
-            });
-    
-            function defaultStyle(feature) {
-                const name = (feature.properties.NAME || feature.properties.name || "").toLowerCase();
-                const cityData = cities.find(c => c.name.toLowerCase() === name);
-                let normalizedValue = 0.5;
-                if (cityData) {
-                    const maxRecord = cityData.data.reduce((a, b) => a.population > b.population ? a : b);
-                    const minRecord = cityData.data.reduce((a, b) => a.population < b.population ? a : b);
-                    const latestRecord = cityData.data.find(d => d.year === 2020) || cityData.data[cityData.data.length - 1];
-                    if ((maxRecord.population - minRecord.population) !== 0) {
-                        normalizedValue = (latestRecord.population - minRecord.population) / (maxRecord.population - minRecord.population);
-                    }
-                }
-                const fillColor = d3.interpolateRdYlGn(normalizedValue);
-                return {
-                    color: "white",
-                    weight: 1,
-                    fillColor: fillColor,
-                    fillOpacity: 0.7
-                };
+      .then(response => response.json())
+      .then(data => {
+        data.features.forEach(function (feature) {
+          feature.properties.fakeValue = Math.random() * 100 - 50;
+        });
+
+        function defaultStyle(feature) {
+          const name = (feature.properties.NAME || feature.properties.name || "").toLowerCase();
+          const cityData = cities.find(c => c.name.toLowerCase() === name);
+          let normalizedValue = 0.5;
+          if (cityData) {
+            const maxRecord = cityData.data.reduce((a, b) => a.population > b.population ? a : b);
+            const minRecord = cityData.data.reduce((a, b) => a.population < b.population ? a : b);
+            const latestRecord = cityData.data.find(d => d.year === 2020) || cityData.data[cityData.data.length - 1];
+            if ((maxRecord.population - minRecord.population) !== 0) {
+              normalizedValue = (latestRecord.population - minRecord.population) / (maxRecord.population - minRecord.population);
             }
-    
-            const geoLayer = L.geoJSON(data, {
-                style: defaultStyle,
-                onEachFeature: function(feature, layer) {
-                    const name = feature.properties.NAME || feature.properties.name || "no name";
-                    const lowerName = name.toLowerCase();
-                    window.geoFeaturesMap[lowerName] = layer;
-                    const cityData = cities.find(c => c.name.toLowerCase() === lowerName);
-                    let maxRecord, minRecord, latestRecord;
-                    if (cityData) {
-                      maxRecord = cityData.data.reduce((a, b) => a.population > b.population ? a : b);
-                      minRecord = cityData.data.reduce((a, b) => a.population < b.population ? a : b);
-                      latestRecord = cityData.data.find(d => d.year === 2020) || cityData.data[cityData.data.length - 1];
-                    }
-                    // Updated popup content: remove year text
-                    layer.bindPopup(`<strong>${name}</strong><br>
+          }
+          const fillColor = d3.interpolateRdYlGn(normalizedValue);
+          return {
+            color: "white",
+            weight: 1,
+            fillColor: fillColor,
+            fillOpacity: 0.7
+          };
+        }
+
+        const geoLayer = L.geoJSON(data, {
+          style: defaultStyle,
+          onEachFeature: function (feature, layer) {
+            const name = feature.properties.NAME || feature.properties.name || "no name";
+            const lowerName = name.toLowerCase();
+            window.geoFeaturesMap[lowerName] = layer;
+            const cityData = cities.find(c => c.name.toLowerCase() === lowerName);
+            let maxRecord, minRecord, latestRecord;
+            if (cityData) {
+              maxRecord = cityData.data.reduce((a, b) => a.population > b.population ? a : b);
+              minRecord = cityData.data.reduce((a, b) => a.population < b.population ? a : b);
+              latestRecord = cityData.data.find(d => d.year === 2020) || cityData.data[cityData.data.length - 1];
+            }
+            // Updated popup content: remove year text
+            layer.bindPopup(`<strong>${name}</strong><br>
                             Máximo: ${maxRecord.population}<br>
                             Mínimo: ${minRecord.population}<br>
                             Último: ${latestRecord.population}`);
-                    // Bind permanent tooltip (city label in white) on the polygon
-                    layer.bindTooltip(name, { permanent: true, direction: 'center', className: 'city-tooltip' });
-    
-                    layer.on("click", function() {
-                        d3.selectAll(".chart").classed("highlight", false);
-                        const chartId = "chart-" + lowerName;
-                        d3.select("#" + chartId).classed("highlight", true);
-                    });
-                }
-            }).addTo(map);
-            map.fitBounds(geoLayer.getBounds());
-        })
-        .catch(error => console.error("Error loading GeoJSON:", error));
+            // Bind permanent tooltip (city label in white) on the polygon
+            layer.bindTooltip(name, { permanent: true, direction: 'center', className: 'city-tooltip' });
+
+            layer.on("click", function () {
+              d3.selectAll(".chart").classed("highlight", false);
+              const chartId = "chart-" + lowerName;
+              d3.select("#" + chartId).classed("highlight", true);
+            });
+          }
+        }).addTo(map);
+        map.fitBounds(geoLayer.getBounds());
+      })
+      .catch(error => console.error("Error loading GeoJSON:", error));
   </script>
 </body>
+
 </html>
