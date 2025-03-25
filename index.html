@@ -596,18 +596,17 @@
         });
 
         function defaultStyle(feature) {
-          const name = (feature.properties.NAME || feature.properties.name || "").toLowerCase();
-          const cityData = cities.find(c => c.name.toLowerCase() === name);
-          let normalizedValue = 0.5;
+          const lowerName = (feature.properties.NAME || feature.properties.name || "").toLowerCase();
+          const cityData = cities.find(c => c.name.toLowerCase() === lowerName);
+          let maxRecord = { population: 'N/A' };
+          let minRecord = { population: 'N/A' };
+          let latestRecord = { population: 'N/A' };
           if (cityData) {
-            const maxRecord = cityData.data.reduce((a, b) => a.population > b.population ? a : b);
-            const minRecord = cityData.data.reduce((a, b) => a.population < b.population ? a : b);
-            const latestRecord = cityData.data.find(d => d.year === 2020) || cityData.data[cityData.data.length - 1];
-            if ((maxRecord.population - minRecord.population) !== 0) {
-              normalizedValue = (latestRecord.population - minRecord.population) / (maxRecord.population - minRecord.population);
-            }
+            maxRecord = cityData.data.reduce((a, b) => a.population > b.population ? a : b);
+            minRecord = cityData.data.reduce((a, b) => a.population < b.population ? a : b);
+            latestRecord = cityData.data.find(d => d.year === 2020) || cityData.data[cityData.data.length - 1];
           }
-          const fillColor = d3.interpolateRdYlGn(normalizedValue);
+          const fillColor = window.cityColorMap[lowerName] || "red";
           return {
             color: "white",
             weight: 1,
@@ -629,13 +628,10 @@
               minRecord = cityData.data.reduce((a, b) => a.population < b.population ? a : b);
               latestRecord = cityData.data.find(d => d.year === 2020) || cityData.data[cityData.data.length - 1];
             }
-            // Updated popup content: remove year text
             layer.bindPopup(`<strong>${name}</strong><br>
-                            Máximo: ${maxRecord.population}<br>
-                            Mínimo: ${minRecord.population}<br>
-                            Último: ${latestRecord.population}`);
-            // Bind permanent tooltip (city label in white) on the polygon
-            layer.bindTooltip(name, { permanent: true, direction: 'center', className: 'city-tooltip' });
+                Máximo: ${maxRecord.population}<br>
+                Mínimo: ${minRecord.population}<br>
+                Último (2020): ${latestRecord.population}`);
 
             layer.on("click", function () {
               d3.selectAll(".chart").classed("highlight", false);
