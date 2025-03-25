@@ -68,7 +68,7 @@
 
     .city-label {
       margin-top: 2px;
-      font-size: .5rem;
+      font-size: 0.85rem;
       color: white;
     }
 
@@ -512,6 +512,14 @@
         const container = chartsContainer.append("div")
           .attr("class", "chart")
           .attr("id", "chart-" + cityNameLower);
+        container.on("click", function () {
+          d3.selectAll(".chart").classed("highlight", false);
+          d3.select(this).classed("highlight", true);
+          const polygon = window.geoFeaturesMap[cityNameLower];
+          if (polygon) {
+            polygon.openPopup();
+          }
+        });
 
         const svg = container.append("svg")
           .attr("width", 250)
