@@ -48,7 +48,6 @@
     #map {
       flex: 1;
       height: 100%;
-      position: relative;
     }
     .chart {
       text-align: center;
@@ -76,7 +75,6 @@
   <div id="container">
     <div id="charts"></div>
     <div id="map"></div>
-    <div id="map-tooltip" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); border: 1px solid yellow; background: transparent; color: yellow; padding: 5px; font-size: 0.8rem; display: none; z-index: 1000;"></div>
   </div>
 
   <script>
@@ -535,7 +533,7 @@
                     .attr("stroke-width", 2)
                     .attr("d", line);
 
-                // Add circles for each data point (no tooltip events)
+                // Add circles for each data point with tooltip events
                 g.selectAll("circle")
                     .data(city.data)
                     .enter()
@@ -543,7 +541,28 @@
                     .attr("cx", d => x(d.year))
                     .attr("cy", d => y(d.population))
                     .attr("r", 2)
-                    .attr("fill", color);
+                    .attr("fill", color)
+                    .on("mouseover", (event, d) => {
+                        // Compute min, max and latest records for this city:
+                        const maxRecord = city.data.reduce((a, b) => a.population > b.population ? a : b);
+                        const minRecord = city.data.reduce((a, b) => a.population < b.population ? a : b);
+                        const latestRecord = city.data.find(d => d.year === 2020) || city.data[city.data.length - 1];
+                        tooltip.transition().duration(200).style("opacity", 1);
+                        tooltip.html(
+                          "Máximo: " + maxRecord.population + " en " + maxRecord.year + "<br>" +
+                          "Mínimo: " + minRecord.population + " en " + minRecord.year + "<br>" +
+                          "Último (2020): " + latestRecord.population
+                        )
+                        .style("left", (event.pageX + 5) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                    })
+                    .on("mousemove", (event, d) => {
+                        tooltip.style("left", (event.pageX + 5) + "px")
+                            .style("top", (event.pageY - 28) + "px");
+                    })
+                    .on("mouseout", (event, d) => {
+                        tooltip.transition().duration(500).style("opacity", 0);
+                    });
 
                 // Add minimal x-axis
                 const xAxis = d3.axisBottom(x)
@@ -575,40 +594,32 @@
         // Draw charts from rawData
         drawCharts(cities, globalMin, globalMax);
 
+        // Use an IntersectionObserver to trigger polygon popup when a chart scrolls into view.
+        const chartsContainerEl = document.querySelector("#charts");
+        const options = {
+          root: chartsContainerEl,
+          threshold: 0.5
+        };
+
         const observer = new IntersectionObserver((entries) => {
           entries.forEach(entry => {
-            const id = entry.target.id; // "chart-<city>"
-            const cityName = id.replace("chart-", "");
-            const polygonLayer = window.geoFeaturesMap[cityName];
-            // Find corresponding city data
-            const cityData = cities.find(c => c.name.toLowerCase() === cityName);
-            if (polygonLayer && cityData) {
-              const maxRecord = cityData.data.reduce((a, b) => a.population > b.population ? a : b);
-              const minRecord = cityData.data.reduce((a, b) => a.population < b.population ? a : b);
-              const latestRecord = cityData.data.find(d => d.year === 2020) || cityData.data[cityData.data.length - 1];
-              const percentage = ((latestRecord.population / maxRecord.population) * 100).toFixed(1);
-              if (entry.isIntersecting) {
-                // Highlight polygon with yellow outline
-                polygonLayer.setStyle({color: "yellow", weight: 3});
-                // Build and display tooltip content in the top center of the map
-                const tooltipContent = `<strong>${cityData.name}</strong><br>
-                Min: (${minRecord.population} en ${minRecord.year})<br>
-                Max: (${maxRecord.population} en ${maxRecord.year})<br>
-                Último: (${latestRecord.population})<br>
-                Porciento Max/Último: (${percentage}%)`;
-                d3.select("#map-tooltip")
-                  .html(tooltipContent)
-                  .style("display", "block");
-              } else {
-                window.geoLayer.resetStyle(polygonLayer);
-                d3.select("#map-tooltip").style("display", "none");
+            if (entry.isIntersecting) {
+              const id = entry.target.id; // "chart-<city>"
+              const cityName = id.replace("chart-", "");
+              const polygonLayer = window.geoFeaturesMap[cityName];
+              if (polygonLayer) {
+                polygonLayer.openPopup();
+              }
+            } else {
+              const id = entry.target.id;
+              const cityName = id.replace("chart-", "");
+              const polygonLayer = window.geoFeaturesMap[cityName];
+              if (polygonLayer) {
+                polygonLayer.closePopup();
               }
             }
           });
-        }, {
-          root: document.querySelector("#charts"),
-          threshold: 0.5
-        });
+        }, options);
 
         // ------------------------------
         // Load the GeoJSON file for the polygons and link with charts
@@ -659,7 +670,10 @@
                           minRecord = cityData.data.reduce((a, b) => a.population < b.population ? a : b);
                           latestRecord = cityData.data.find(d => d.year === 2020) || cityData.data[cityData.data.length - 1];
                         }
-                        // Removed bindPopup call, using custom tooltip instead
+                        layer.bindPopup(`<strong>${name}</strong><br>
+                            Máximo: ${maxRecord.population} en ${maxRecord.year}<br>
+                            Mínimo: ${minRecord.population} en ${minRecord.year}<br>
+                            Último (2020): ${latestRecord.population}`);
                         // On click, highlight the corresponding chart
                         layer.on("click", function() {
                             d3.selectAll(".chart").classed("highlight", false);
@@ -668,7 +682,6 @@
                         });
                     }
                 }).addTo(map);
-                window.geoLayer = geoLayer;
                 map.fitBounds(geoLayer.getBounds());
 
                 // Observe each chart for scrolling effect
@@ -680,5 +693,3 @@
     </script>
 </body>
 </html>
-
-
