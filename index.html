@@ -505,6 +505,12 @@
 
     function drawCharts(cities, globalMin, globalMax) {
       const chartsContainer = d3.select("#charts");
+      const instruction = chartsContainer.insert("div", ":first-child")
+        .attr("class", "instruction")
+        .style("font-size", "10px")
+        .style("margin-bottom", "5px")
+        .style("text-align", "center")
+        .text("Haz Click en la Gráfica");
       cities.forEach(city => {
         const cityNameLower = city.name.toLowerCase();
         const color = window.cityColorMap[cityNameLower];
@@ -629,8 +635,7 @@
               latestRecord = cityData.data.find(d => d.year === 2020) || cityData.data[cityData.data.length - 1];
             }
             layer.bindPopup(`<strong>${name}</strong><br>
-                Máximo: ${maxRecord.population}<br>
-                Mínimo: ${minRecord.population}<br>
+                Máximo Histórico: ${maxRecord.population}<br>
                 Último (2020): ${latestRecord.population}`);
 
             layer.on("click", function () {
